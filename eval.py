@@ -23,6 +23,8 @@ from dataset import InstructionEmbedding
 from tasks import load_task
 from utils.env import get_action
 
+from sam2act.utils.rvt_utils import load_agent_only_model as load_agent_state
+
 logger = logging.getLogger(__name__)
 
 
@@ -71,6 +73,25 @@ def load_agent(cfg, device):
 
         lang_encoder = create_lang_encoder(cfg, device=device)
         lang_embed_cache = InstructionEmbedding(lang_encoder)
+    
+    elif 'sam2act' in cfg.model:
+        # создать модельку
+        from sam2act.agent import create_agent
+        agent = create_agent(
+                model_path=cfg.model_path,
+                exp_cfg_path=cfg.exp_cfg_path,
+                mvt_cfg_path=cfg.mvt_cfg_path,
+                eval_log_dir=cfg.eval_log_dir,
+                device=cfg.device,
+                use_input_place_with_mean=cfg.use_input_place_with_mean,
+            )
+
+        lang_embed_cache = np.null
+
+        # agent_eval_log_dir = os.path.join(
+        #     args.eval_log_dir, os.path.basename(model_path).split(".")[0]
+        # )
+    
 
     else:
         raise ValueError(f'{cfg.model} agent not supported')
@@ -81,6 +102,7 @@ def load_agent(cfg, device):
 
 @hydra.main(config_path='./configs', config_name='default')
 def main(cfg):
+    # в этой директории будут сохр промежуточные точки
     cfg.checkpoint_dir = cfg.checkpoint_dir.split(os.path.sep)
     cfg.checkpoint_dir[-2] = cfg.checkpoint_dir[-2].replace('eval', 'train')
     cfg.checkpoint_dir = os.path.sep.join(cfg.checkpoint_dir)
